@@ -1,10 +1,7 @@
 import {ErrorResponse} from '@sharedTypes/MessageTypes';
-<<<<<<< Updated upstream
-=======
 import jwt from 'jsonwebtoken';
 import {MyContext, UserFromToken} from '../local-types';
 import {Request} from 'express';
->>>>>>> Stashed changes
 
 const fetchData = async <T>(
   url: string,
@@ -24,9 +21,6 @@ const fetchData = async <T>(
   return json;
 };
 
-<<<<<<< Updated upstream
-export {fetchData};
-=======
 const authenticate = async (req: Request): Promise<MyContext> => {
   const authHeader = req.headers.authorization;
   if (authHeader) {
@@ -47,4 +41,3 @@ const authenticate = async (req: Request): Promise<MyContext> => {
 };
 
 export {fetchData, authenticate};
->>>>>>> Stashed changes

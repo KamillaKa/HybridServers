@@ -43,12 +43,6 @@ input AddTagToMediaInput {
 
 type Mutation {
   createMediaItem(input: MediaItemInput!): MediaItem!
-<<<<<<< Updated upstream
-  AddTagToMedia(input: AddTagToMedia!): MediaItem!
-  deleteMediaItem(input: ID!): Message
-  updateMediaItem(input: MediaItemUpdateInput!, media_id: ID!): MediaItem!
-=======
   addTagToMedia(input: AddTagToMediaInput!): MediaItem!
   updateMediaItem(input: MediaItemUpdateInput!, media_id: ID!): MediaResponse!
->>>>>>> Stashed changes
 }
