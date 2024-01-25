@@ -12,6 +12,11 @@ import {
   ApolloServerPluginLandingPageLocalDefault,
   ApolloServerPluginLandingPageProductionDefault,
 } from '@apollo/server/plugin/landingPage/default';
+<<<<<<< Updated upstream
+=======
+import {MyContext} from './local-types';
+import {authenticate} from './lib/functions';
+>>>>>>> Stashed changes
 
 const app = express();
 
@@ -28,7 +33,11 @@ const app = express();
       res.send({message: 'Server is running'});
     });
 
+<<<<<<< Updated upstream
     const server = new ApolloServer({
+=======
+    const server = new ApolloServer<MyContext>({
+>>>>>>> Stashed changes
       typeDefs,
       resolvers,
       plugins: [
@@ -38,7 +47,13 @@ const app = express();
 
     await server.start();
 
+<<<<<<< Updated upstream
     app.use('/graphql', cors(), express.json(), expressMiddleware(server));
+=======
+    app.use('/graphql', cors(), express.json(), expressMiddleware(server, {
+      context: ({req}) => authenticate(req),
+    }));
+>>>>>>> Stashed changes
 
     app.use(notFound);
     app.use(errorHandler);

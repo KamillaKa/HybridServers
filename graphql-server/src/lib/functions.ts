@@ -1,4 +1,10 @@
 import {ErrorResponse} from '@sharedTypes/MessageTypes';
+<<<<<<< Updated upstream
+=======
+import jwt from 'jsonwebtoken';
+import {MyContext, UserFromToken} from '../local-types';
+import {Request} from 'express';
+>>>>>>> Stashed changes
 
 const fetchData = async <T>(
   url: string,
@@ -18,4 +24,27 @@ const fetchData = async <T>(
   return json;
 };
 
+<<<<<<< Updated upstream
 export {fetchData};
+=======
+const authenticate = async (req: Request): Promise<MyContext> => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+      const token = authHeader.split(' ')[1];
+      try {
+          const user = jwt.verify(
+              token,
+              process.env.JWT_SECRET as string,
+             ) as UserFromToken;
+          // add token to user object so we can use it in resolvers
+          user.token = token;
+          return {user};
+      } catch (error) {
+          return {};
+      }
+  }
+  return {};
+};
+
+export {fetchData, authenticate};
+>>>>>>> Stashed changes
