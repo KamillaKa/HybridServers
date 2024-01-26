@@ -1,7 +1,14 @@
-import { MediaItem } from '@sharedTypes/DBTypes';
-import {fetchAllMedia, fetchMediaById, fetchMediaByTag, postMedia, postTagToMedia, putMedia} from '../models/mediaModel';
-import { MyContext } from '../../local-types';
-import { GraphQLError } from 'graphql';
+import {MediaItem} from '@sharedTypes/DBTypes';
+import {
+  fetchAllMedia,
+  fetchMediaById,
+  fetchMediaByTag,
+  postMedia,
+  postTagToMedia,
+  putMedia,
+} from '../models/mediaModel';
+import {MyContext} from '../../local-types';
+import {GraphQLError} from 'graphql';
 
 export default {
   Query: {
@@ -24,15 +31,16 @@ export default {
     ) => {
       if (!context.user || !context.user.user_id) {
         throw new GraphQLError('Not authorized', {
-            extensions: {code: 'NOT_AUTHORIZED'},
+          extensions: {code: 'NOT_AUTHORIZED'},
         });
       }
-      return await postMedia(args.input);
+      return postMedia(args.input);
     },
-    addTagToMedia: async (
+    addTagToMediaItem: async (
       _parent: undefined,
       args: {input: {media_id: string; tag_name: string}},
     ) => {
+      console.log(args);
       return await postTagToMedia(
         args.input.tag_name,
         Number(args.input.media_id),

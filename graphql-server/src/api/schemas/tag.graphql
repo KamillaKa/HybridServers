@@ -11,7 +11,7 @@ type Query {
   tags: [Tag]
 }
 
-type TagInput {
+input TagInput {
   tag_name: String!
 }
 

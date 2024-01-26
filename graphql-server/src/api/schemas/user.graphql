@@ -1,19 +1,19 @@
 type User {
-    user_id: ID!
-    username: String!
-    email: String!
-    level_name: String!
-    created_at: String!
+  user_id: ID!
+  username: String!
+  email: String!
+  level_name: String!
+  created_at: String!
 }
 
 type UserResponse {
-    message: String!
-    user: User!
+  user: User!
+  message: String!
 }
 
 type Query {
-    users: [User]
-    user(user_id: ID!): User
+  users: [User]
+  user(user_id: ID!): User
 }
 
 input UserInput {
@@ -23,5 +23,5 @@ input UserInput {
 }
 
 type Mutation {
-  createUser(input: UserInput!): UserResponse!
+  createUser(input: UserInput!): UserResponse
 }

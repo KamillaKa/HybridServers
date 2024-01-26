@@ -19,7 +19,7 @@ type MediaResponse {
 type Query {
   mediaItems: [MediaItem]
   mediaItem(media_id: ID!): MediaItem
-  mediaItemsByTag(tag_id: ID!): [MediaItem]
+  mediaItemsByTag(tag: String!): [MediaItem]
 }
 
 input MediaItemInput {
@@ -32,17 +32,17 @@ input MediaItemInput {
 }
 
 input MediaItemUpdateInput {
-  title: String!
+  title: String
   description: String
 }
 
-input AddTagToMediaInput {
+input AddTagToMediaItemInput {
   media_id: ID!
   tag_name: String!
 }
 
 type Mutation {
-  createMediaItem(input: MediaItemInput!): MediaItem!
-  addTagToMedia(input: AddTagToMediaInput!): MediaItem!
-  updateMediaItem(input: MediaItemUpdateInput!, media_id: ID!): MediaResponse!
+  createMediaItem(input: MediaItemInput!): MediaItem
+  addTagToMediaItem(input: AddTagToMediaItemInput!): MediaItem
+  updateMediaItem(input: MediaItemUpdateInput!, media_id: ID!): MediaResponse
 }

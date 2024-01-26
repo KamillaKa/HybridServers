@@ -7,7 +7,7 @@ import {MessageResponse} from '@sharedTypes/MessageTypes';
 import {ApolloServer} from '@apollo/server';
 import {expressMiddleware} from '@apollo/server/express4';
 import typeDefs from './api/schemas/index';
-import resolvers from './api/resolvers/mediaResolver';
+import resolvers from './api/resolvers/index';
 import {
   ApolloServerPluginLandingPageLocalDefault,
   ApolloServerPluginLandingPageProductionDefault,
@@ -34,15 +34,22 @@ const app = express();
       typeDefs,
       resolvers,
       plugins: [
-        ApolloServerPluginLandingPageLocalDefault(),
+        process.env.NODE_ENV === 'production'
+          ? ApolloServerPluginLandingPageProductionDefault()
+          : ApolloServerPluginLandingPageLocalDefault(),
       ],
     });
 
     await server.start();
 
-    app.use('/graphql', cors(), express.json(), expressMiddleware(server, {
-      context: ({req}) => authenticate(req),
-    }));
+    app.use(
+      '/graphql',
+      cors(),
+      express.json(),
+      expressMiddleware(server, {
+        context: ({req}) => authenticate(req),
+      }),
+    );
 
     app.use(notFound);
     app.use(errorHandler);

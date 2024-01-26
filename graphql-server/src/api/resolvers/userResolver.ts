@@ -1,21 +1,18 @@
-import { User, UserWithNoPassword } from "@sharedTypes/DBTypes";
-import { fetchData } from "../../lib/functions";
-import { UserResponse } from "@sharedTypes/MessageTypes";
+import {User, UserWithNoPassword} from '@sharedTypes/DBTypes';
+import {fetchData} from '../../lib/functions';
+import {UserResponse} from '@sharedTypes/MessageTypes';
 
 export default {
   Query: {
     users: async () => {
       const users = await fetchData<UserWithNoPassword[]>(
-        process.env.AUTH_SERVER + '/users'
-        );
+        process.env.AUTH_SERVER + '/users',
+      );
       return users;
     },
-    user: async (
-      _parent: undefined,
-      args: {user_id: string}
-      ) => {
+    user: async (_parent: undefined, args: {user_id: string}) => {
       const user = await fetchData<UserWithNoPassword>(
-        process.env.AUTH_SERVER + '/users/' + args.user_id
+        process.env.AUTH_SERVER + '/users/' + args.user_id,
       );
       return user;
     },
@@ -37,6 +34,4 @@ export default {
       return user;
     },
   },
-}
-
-
+};
