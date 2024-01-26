@@ -24,8 +24,8 @@ type Query {
 
 input UserInput {
   username: String! @constraint(minLength: 3, maxLength: 255)
-   email: String! @constraint(format: "email", maxLength: 255)
-   password: String! @constraint(minLength: 5, pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{5,})"
+  email: String! @constraint(format: "email")
+  password: String! @constraint(pattern: "(?=.*[0-9])")
 }
 
 type Mutation {

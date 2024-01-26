@@ -22,9 +22,20 @@ export default {
       _parent: undefined,
       args: {input: Pick<User, 'username' | 'email' | 'password'>},
     ) => {
+      const options: RequestInit = {
+        method: 'POST',
+        body: JSON.stringify(args.input),
+        headers: {'Content-Type': 'application/json'},
+      };
+      const user = await fetchData<UserResponse>(
+        process.env.AUTH_SERVER + '/users',
+        options,
+      );
+      return user;
+    },
     login: async (
       _parent: undefined,
-      args: Pick<User, 'username' | 'password'>
+      args: Pick<User, 'username' | 'password'>,
     ) => {
       const options = {
         method: 'POST',

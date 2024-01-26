@@ -35,15 +35,16 @@ const app = express();
       res.send({message: 'Server is running'});
     });
 
+    // create executable schema for validation
     const schema = makeExecutableSchema({
       typeDefs: [constraintDirectiveTypeDefs, typeDefs],
       resolvers,
     });
 
     const server = new ApolloServer<MyContext>({
-      typeDefs,
-      resolvers,
+      schema,
       plugins: [
+        createApollo4QueryValidationPlugin({schema}),
         process.env.NODE_ENV === 'production'
           ? ApolloServerPluginLandingPageProductionDefault()
           : ApolloServerPluginLandingPageLocalDefault(),
