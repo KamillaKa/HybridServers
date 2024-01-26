@@ -14,6 +14,11 @@ import {
 } from '@apollo/server/plugin/landingPage/default';
 import {MyContext} from './local-types';
 import {authenticate} from './lib/functions';
+import {makeExecutableSchema} from '@graphql-tools/schema';
+import {
+  constraintDirectiveTypeDefs,
+  createApollo4QueryValidationPlugin,
+} from 'graphql-constraint-directive/apollo4';
 
 const app = express();
 
@@ -28,6 +33,11 @@ const app = express();
 
     app.get('/', (_req: Request, res: Response<MessageResponse>) => {
       res.send({message: 'Server is running'});
+    });
+
+    const schema = makeExecutableSchema({
+      typeDefs: [constraintDirectiveTypeDefs, typeDefs],
+      resolvers,
     });
 
     const server = new ApolloServer<MyContext>({
