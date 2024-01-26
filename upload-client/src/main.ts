@@ -1,14 +1,23 @@
 import {fetchData} from './functions';
 import {MediaItem, UserWithNoPassword} from '@sharedTypes/DBTypes';
-import {LoginResponse} from '@sharedTypes/MessageTypes';
+import {LoginResponse, UploadResponse} from '@sharedTypes/MessageTypes';
 
 // select forms from the DOM
 const loginForm = document.querySelector('#login-form');
 const fileForm = document.querySelector('#file-form');
 
 // select inputs from the DOM
-const usernameInput = document.querySelector('#username') as HTMLInputElement;
-const passwordInput = document.querySelector('#password') as HTMLInputElement;
+const usernameInput = document.querySelector(
+  '#username'
+) as HTMLInputElement | null;
+const passwordInput = document.querySelector(
+  '#password'
+) as HTMLInputElement | null;
+const titleInput = document.querySelector('#title') as HTMLInputElement | null;
+const descriptionInput = document.querySelector(
+  '#description'
+) as HTMLTextAreaElement | null;
+const fileInput = document.querySelector('#file') as HTMLInputElement | null;
 
 // select profile elements from the DOM
 const usernameTarget = document.querySelector('#username-target');
@@ -17,7 +26,7 @@ const emailTarget = document.querySelector('#email-target');
 // select media elements from the DOM
 const filesList = document.querySelector('#files-list');
 
-//function to login
+// function to login
 const login = async (): Promise<LoginResponse> => {
   // grapql query to login (copy from sandbox)
   const query = `
@@ -37,8 +46,8 @@ const login = async (): Promise<LoginResponse> => {
   `;
 
   const variables = {
-    username: usernameInput.value,
-    password: passwordInput.value,
+    username: usernameInput && usernameInput.value,
+    password: passwordInput && passwordInput.value,
   };
 
   const options = {
@@ -56,8 +65,62 @@ const login = async (): Promise<LoginResponse> => {
 };
 
 // TODO: function to upload a file
+const uploadFile = async (): Promise<UploadResponse> => {
+  const formData = new FormData();
+  if (fileInput && fileInput.files) {
+    formData.append('file', fileInput.files[0]);
+  }
+  const options = {
+    method: 'POST',
+    body: formData,
+    headers: {
+      Authorization: 'Bearer ' + localStorage.getItem('token'),
+    },
+  };
+  const uploadResponse = await fetchData<UploadResponse>(
+    import.meta.env.VITE_UPLOAD_SERVER + '/upload',
+    options
+  );
+  console.log(uploadResponse);
+  return uploadResponse;
+};
 
 // TODO funtion to post a file to the API
+const postFile = async (uploadResponse: UploadResponse) => {
+  const query = `
+  mutation CreateMediaItem($input: MediaItemInput!) {
+    createMediaItem(input: $input) {
+      title
+    }
+  }
+  `;
+
+  const variables = {
+    input: {
+      title: titleInput && titleInput.value,
+      description: descriptionInput && descriptionInput.value,
+      filename: uploadResponse.data.filename,
+      media_type: uploadResponse.data.media_type,
+      filesize: uploadResponse.data.filesize,
+    },
+  };
+
+  const options = {
+    method: 'POST',
+    body: JSON.stringify({query, variables}),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + localStorage.getItem('token'),
+    },
+  };
+
+  const postResponse = await fetchData<{
+    data: {createMediaItem: Pick<MediaItem, 'title'>};
+  }>(import.meta.env.VITE_GRAPHQL_SERVER, options);
+
+  console.log(postResponse);
+  return postResponse;
+};
 
 // function to add userdata (email, username) to the
 // Profile DOM elements
@@ -124,7 +187,7 @@ const addFilesToDom = async () => {
 
 addFilesToDom();
 
-// TODO: function to get userdata from API using token
+// function to get userdata from API using token
 const getUserData = async (token: string): Promise<UserWithNoPassword> => {
   const query = `
       query CheckToken {
@@ -191,3 +254,16 @@ if (loginForm) {
 // event listener should call uploadFile function to upload the file
 // then call postFile function to post the file to the GraphQL API
 // then call addFileToDom to update the DOM with the file data
+if (fileForm) {
+  fileForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      const uploadResponse = await uploadFile();
+      await postFile(uploadResponse);
+      addFilesToDom();
+    } catch (error) {
+      console.log(error);
+      alert((error as Error).message);
+    }
+  });
+}
