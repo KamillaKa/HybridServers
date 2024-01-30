@@ -9,6 +9,7 @@ type Message {
 
 type Query {
   tags: [Tag]
+  tag(tag_id: ID!): Tag
 }
 
 input TagInput {
@@ -18,4 +19,8 @@ input TagInput {
 type Mutation {
   createTag(input: TagInput!): Tag
   deleteTag(input: ID!): Message
+  updateTag(input: TagInput!): Tag
+  deleteTag(tag_id: ID!): Boolean
+  addTagToMediaItem(media_id: ID!, tag_id: ID!): Boolean
+  removeTagFromMediaItem(media_id: ID!, tag_id: ID!): Boolean
 }

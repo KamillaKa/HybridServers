@@ -1,6 +1,8 @@
 import {User, UserWithNoPassword} from '@sharedTypes/DBTypes';
 import {fetchData} from '../../lib/functions';
 import {LoginResponse, UserResponse} from '@sharedTypes/MessageTypes';
+import { GraphQLError } from 'graphql';
+import { MyContext } from '../../local-types';
 
 export default {
   MediaItem: {
@@ -55,6 +57,21 @@ export default {
         options,
       );
       return loginResponse;
+    },
+    updateUser: async (
+      _parent: undefined,
+      args: { input: User }, context: MyContext
+      ) => {
+      if (!context.user) {
+        throw new GraphQLError('Not authorized', { extensions: { code: 'NOT_AUTHORIZED' } });
+      }
+      return await updateUser(context.user.user_id, args.input);
+    },
+    deleteUser: async (_parent: undefined, context: MyContext) => {
+      if (!context.user) {
+        throw new GraphQLError('Not authorized', { extensions: { code: 'NOT_AUTHORIZED' } });
+      }
+      return await deleteUser(context.user.user_id);
     },
   },
 };

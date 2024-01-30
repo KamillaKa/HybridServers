@@ -31,4 +31,8 @@ input UserInput {
 type Mutation {
   createUser(input: UserInput!): UserResponse
   login(username: String!, password: String!): LoginResponse
+  updateUser(input: UserInput!): User
+  deleteUser: Boolean
+  updateUserAsAdmin(user_id: ID!, input: UserInput!): User
+  deleteUserAsAdmin(user_id: ID!): Boolean
 }

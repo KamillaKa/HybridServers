@@ -22,6 +22,12 @@ export default {
     mediaItemsByTag: async (_parent: undefined, args: {tag: string}) => {
       return await fetchMediaByTag(args.tag);
     },
+    checkEmail: async (_parent: undefined, args: { email: string }) => {
+      return await checkEmail(args.email);
+    },
+    checkUsername: async (_parent: undefined, args: { username: string }) => {
+      return await checkUsername(args.username);
+    },
   },
   Mutation: {
     createMediaItem: async (
@@ -67,4 +73,18 @@ export default {
       return await putMedia(args.input, Number(args.media_id));
     },
   },
+  deleteMediaItem: async (_parent: undefined, args: { media_id: string }, context: MyContext) => {
+    if (!context.user) {
+      throw new GraphQLError('Not authorized', { extensions: { code: 'NOT_AUTHORIZED' } });
+    }
+
+    // Check if the user is the owner or an admin
+    const mediaItem = await fetchMediaById(args.media_id);
+    if (context.user.user_id !== mediaItem.user_id && !context.user.isAdmin) {
+      throw new GraphQLError('Forbidden', { extensions: { code: 'FORBIDDEN' } });
+    }
+
+    return await deleteMedia(args.media_id);
+  },
+},
 };

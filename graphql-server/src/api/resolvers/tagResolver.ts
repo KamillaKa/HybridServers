@@ -17,6 +17,9 @@ export default {
     tags: async () => {
       return await fetchAllTags();
     },
+    tag: async (_parent: undefined, args: { tag_id: string }) => {
+      return await fetchTagsByMediaId(Number(args.tag_id));
+    },
   },
   Mutation: {
     createTag: async (
@@ -27,6 +30,9 @@ export default {
     },
     deleteTag: async (_parent: undefined, args: {input: string}) => {
       return await deleteTag(Number(args.input));
+    },
+    updateTag: async (_parent: undefined, args: { input: Tag }) => {
+      return await updateTag(args.input);
     },
   },
 };
