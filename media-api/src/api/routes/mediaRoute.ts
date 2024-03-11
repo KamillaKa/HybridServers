@@ -1,19 +1,49 @@
 import express from 'express';
 import {
-  mediaDelete,
-  mediaGet,
   mediaListGet,
-  mediaListGetByAppId,
+  mediaGet,
   mediaPost,
+  mediaPut,
+  mediaDelete,
+  mediaListMostLikedGet,
+  mediaListMostCommentedGet,
+  mediaListHighestRatedGet,
 } from '../controllers/mediaController';
-import {authenticate} from '../../middlewares';
+import {authenticate, validationErrors} from '../../middlewares';
+import {body} from 'express-validator';
 
 const router = express.Router();
 
-router.route('/').get(mediaListGet).post(authenticate, mediaPost);
+router
+  .route('/')
+  .get(mediaListGet)
+  .post(
+    authenticate,
+    body('title').notEmpty().isString().escape(),
+    body('description').notEmpty().isString().escape(),
+    body('filename').notEmpty().isString().escape(),
+    body('media_type').notEmpty().isString().escape(),
+    body('filesize').notEmpty().isNumeric().escape(),
+    body('rating').notEmpty().isNumeric().isInt({min: 1, max: 5}).escape(),
+    validationErrors,
+    mediaPost
+  );
+router.route('/mostliked').get(mediaListMostLikedGet);
 
-router.route('/:id').get(mediaGet).delete(authenticate, mediaDelete);
+router.route('/mostcommented').get(mediaListMostCommentedGet);
 
-router.route('/app/:id').get(mediaListGetByAppId);
+router.route('/highestrated').get(mediaListHighestRatedGet);
+
+router
+  .route('/:id')
+  .get(mediaGet)
+  .put(
+    authenticate,
+    body('title').optional().isString().escape(),
+    body('description').optional().isString().escape(),
+    validationErrors,
+    mediaPut
+  )
+  .delete(authenticate, mediaDelete);
 
 export default router;

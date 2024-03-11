@@ -1,15 +1,8 @@
 import {ResultSetHeader, RowDataPacket} from 'mysql2';
-import {MediaItem, TokenContent} from '@sharedTypes/DBTypes';
+import {MediaItem, UserLevel} from '@sharedTypes/DBTypes';
 import promisePool from '../../lib/db';
 import {fetchData} from '../../lib/functions';
 import {MessageResponse} from '@sharedTypes/MessageTypes';
-
-/**
- * Get all media items from the database
- *
- * @returns {array} - array of media items
- * @throws {Error} - error if database query fails
- */
 
 const fetchAllMedia = async (): Promise<MediaItem[] | null> => {
   const uploadPath = process.env.UPLOAD_URL;
@@ -30,37 +23,6 @@ const fetchAllMedia = async (): Promise<MediaItem[] | null> => {
     throw new Error((e as Error).message);
   }
 };
-
-const fetchAllMediaByAppId = async (
-  id: string
-): Promise<MediaItem[] | null> => {
-  const uploadPath = process.env.UPLOAD_URL;
-  try {
-    const [rows] = await promisePool.execute<RowDataPacket[] & MediaItem[]>(
-      `SELECT *,
-      CONCAT(?, filename) AS filename,
-      CONCAT(?, CONCAT(filename, "-thumb.png")) AS thumbnail
-      FROM MediaItems
-      WHERE app_id = ?`,
-      [uploadPath, uploadPath, id]
-    );
-    if (rows.length === 0) {
-      return null;
-    }
-    return rows;
-  } catch (e) {
-    console.error('fetchAllMedia error', (e as Error).message);
-    throw new Error((e as Error).message);
-  }
-};
-
-/**
- * Get media item by id from the database
- *
- * @param {number} id - id of the media item
- * @returns {object} - object containing all information about the media item
- * @throws {Error} - error if database query fails
- */
 
 const fetchMediaById = async (id: number): Promise<MediaItem | null> => {
   const uploadPath = process.env.UPLOAD_URL;
@@ -86,31 +48,15 @@ const fetchMediaById = async (id: number): Promise<MediaItem | null> => {
   }
 };
 
-/**
- * Add new media item to database
- *
- * @param {object} media - object containing all information about the new media item
- * @returns {object} - object containing id of the inserted media item in db
- * @throws {Error} - error if database query fails
- */
 const postMedia = async (
-  media: Omit<MediaItem, 'media_id' | 'created_at'>
+  media: Omit<MediaItem, 'media_id' | 'created_at' | 'thumbnail'>
 ): Promise<MediaItem | null> => {
-  const {user_id, filename, filesize, media_type, title, description} =
-    media;
+  const {user_id, filename, filesize, media_type, title, description} = media;
   const sql = `INSERT INTO MediaItems (user_id, filename, filesize, media_type, title, description)
                VALUES (?, ?, ?, ?, ?, ?)`;
-  const params = [
-    user_id,
-    filename,
-    filesize,
-    media_type,
-    title,
-    description
-  ];
+  const params = [user_id, filename, filesize, media_type, title, description];
   try {
     const result = await promisePool.execute<ResultSetHeader>(sql, params);
-    console.log('result', result);
     const [rows] = await promisePool.execute<RowDataPacket[] & MediaItem[]>(
       'SELECT * FROM MediaItems WHERE media_id = ?',
       [result[0].insertId]
@@ -125,57 +71,55 @@ const postMedia = async (
   }
 };
 
-/**
- * Update media item in database
- *
- * @param {object} media - object containing all information about the media item
- * @param {number} id - id of the media item
- * @returns {object} - object containing id of the updated media item in db
- * @throws {Error} - error if database query fails
- */
-
 const putMedia = async (
   media: Pick<MediaItem, 'title' | 'description'>,
-  id: number
-) => {
+  id: number,
+  user_id: number,
+  user_level: UserLevel['level_name']
+): Promise<MediaItem | null> => {
   try {
-    const sql = promisePool.format('UPDATE MediaItems SET ? WHERE ?', [
-      media,
-      id,
-    ]);
+    let sql = '';
+    if (user_level === 'Admin') {
+      sql = promisePool.format('UPDATE MediaItems SET ? WHERE media_id = ?', [
+        media,
+        id,
+      ]);
+    } else {
+      sql = promisePool.format(
+        'UPDATE MediaItems SET ? WHERE media_id = ? AND user_id = ?',
+        [media, id, user_id]
+      );
+    }
     const result = await promisePool.execute<ResultSetHeader>(sql);
     console.log('result', result);
-    return {media_id: result[0].insertId};
+    if (result[0].affectedRows === 0) {
+      return null;
+    }
+
+    const mediaItem = await fetchMediaById(id);
+    if (!mediaItem) {
+      return null;
+    }
+    return mediaItem;
   } catch (e) {
     console.error('error', (e as Error).message);
     throw new Error((e as Error).message);
   }
 };
 
-/**
- * Delete media item from database
- *
- * @param {number} id - id of the media item
- * @returns {object} - object containing id of the deleted media item in db
- * @throws {Error} - error if database query fails
- */
-
 const deleteMedia = async (
-  id: number,
-  user: TokenContent,
-  token: string
+  media_id: number,
+  user_id: number,
+  token: string,
+  level_name: UserLevel['level_name']
 ): Promise<MessageResponse> => {
-  console.log('deleteMedia', id);
-  const media = await fetchMediaById(id);
-  console.log(media);
+  // get media item from database for filename
+
+  console.log('media_id', media_id, 'user_id', user_id, 'token', token);
+  const media = await fetchMediaById(media_id);
 
   if (!media) {
     return {message: 'Media not found'};
-  }
-
-  // if admin add user_id from media object to user object from token content
-  if (user.level_name === 'Admin') {
-    user.user_id = media.user_id;
   }
 
   // remove environment variable UPLOAD_URL from filename
@@ -184,24 +128,41 @@ const deleteMedia = async (
     ''
   );
 
-  console.log(token);
-
   const connection = await promisePool.getConnection();
 
   try {
     await connection.beginTransaction();
 
-    await connection.execute('DELETE FROM Likes WHERE media_id = ?;', [id]);
+    await connection.execute('DELETE FROM Likes WHERE media_id = ?;', [
+      media_id,
+    ]);
 
-    await connection.execute('DELETE FROM Comments WHERE media_id = ?;', [id]);
+    await connection.execute('DELETE FROM Comments WHERE media_id = ?;', [
+      media_id,
+    ]);
 
-    await connection.execute('DELETE FROM Ratings WHERE media_id = ?;', [id]);
+    await connection.execute('DELETE FROM Ratings WHERE media_id = ?;', [
+      media_id,
+    ]);
 
-    // ! user_id in SQL so that only the owner of the media item can delete it
-    const [result] = await connection.execute<ResultSetHeader>(
-      'DELETE FROM MediaItems WHERE media_id = ? and user_id = ?;',
-      [id, user.user_id]
-    );
+    await connection.execute('DELETE FROM MediaItemTags WHERE media_id = ?;', [
+      media_id,
+    ]);
+
+    let sql = '';
+    if (level_name === 'Admin') {
+      sql = connection.format('DELETE FROM MediaItems WHERE media_id = ?', [
+        media_id,
+      ]);
+    } else {
+      sql = connection.format(
+        'DELETE FROM MediaItems WHERE media_id = ? AND user_id = ?',
+        [media_id, user_id]
+      );
+    }
+    console.log(sql);
+    // note, user_id in SQL so that only the owner of the media item can delete it
+    const [result] = await connection.execute<ResultSetHeader>(sql);
 
     if (result.affectedRows === 0) {
       return {message: 'Media not deleted'};
@@ -215,20 +176,26 @@ const deleteMedia = async (
       },
     };
 
-    const deleteResult = await fetchData<MessageResponse>(
-      `${process.env.UPLOAD_SERVER}/delete/${media.filename}`,
-      options
-    );
+    // separate try-catch block for delete request to upload server
+    // so that it doesn't affect the transaction
+    // (there might be items without files when testing)
+    try {
+      const deleteResult = await fetchData<MessageResponse>(
+        `${process.env.UPLOAD_SERVER}/delete/${media.filename}`,
+        options
+      );
 
-    console.log('deleteResult', deleteResult);
-    if (deleteResult.message !== 'File deleted') {
-      throw new Error('File not deleted');
+      console.log('deleteResult', deleteResult);
+    } catch (e) {
+      console.error('file delete error', (e as Error).message);
     }
 
     // if no errors commit transaction
     await connection.commit();
 
-    return {message: 'Media deleted'};
+    return {
+      message: 'Media deleted',
+    };
   } catch (e) {
     await connection.rollback();
     console.error('error', (e as Error).message);
@@ -238,35 +205,26 @@ const deleteMedia = async (
   }
 };
 
-/**
- * Get all the most liked media items from the database
- *
- * @returns {object} - object containing all information about the most liked media item
- * @throws {Error} - error if database query fails
- */
-
 const fetchMostLikedMedia = async (): Promise<MediaItem | undefined> => {
   try {
-    const [rows] = await promisePool.execute<RowDataPacket[] & MediaItem[]>(
-      'SELECT * FROM `MostLikedMedia`'
-    );
+    const [rows] = await promisePool.execute<
+      RowDataPacket[] & MediaItem[] & {likes_count: number}
+    >('SELECT * FROM `MostLikedMedia`');
     if (rows.length === 0) {
       return undefined;
     }
-    rows[0].filename =
-      process.env.MEDIA_SERVER + '/uploads/' + rows[0].filename;
+    // add server url to filename because it can't be added in the SQL view
+    rows[0].filename = process.env.UPLOAD_URL + '/uploads/' + rows[0].filename;
+    // add thumbnail to object for the same reason
+    rows[0].thumbnail =
+      process.env.UPLOAD_URL + '/uploads/' + rows[0].filename + '-thumb.png';
+    console.log(rows[0]);
+    return rows[0];
   } catch (e) {
     console.error('getMostLikedMedia error', (e as Error).message);
     throw new Error((e as Error).message);
   }
 };
-
-/**
- * Get all the most commented media items from the database
- *
- * @returns {object} - object containing all information about the most commented media item
- * @throws {Error} - error if database query fails
- */
 
 const fetchMostCommentedMedia = async (): Promise<MediaItem | undefined> => {
   try {
@@ -276,20 +234,17 @@ const fetchMostCommentedMedia = async (): Promise<MediaItem | undefined> => {
     if (rows.length === 0) {
       return undefined;
     }
-    rows[0].filename =
-      process.env.MEDIA_SERVER + '/uploads/' + rows[0].filename;
+    // add server url to filename because it can't be added in the SQL view
+    rows[0].filename = process.env.UPLOAD_URL + '/uploads/' + rows[0].filename;
+    // add thumbnail to object for the same reason
+    rows[0].thumbnail =
+      process.env.UPLOAD_URL + '/uploads/' + rows[0].filename + '-thumb.png';
+    return rows[0];
   } catch (e) {
     console.error('getMostCommentedMedia error', (e as Error).message);
     throw new Error((e as Error).message);
   }
 };
-
-/**
- * Get all the highest rated media items from the database
- *
- * @returns {object} - object containing all information about the highest rated media item
- * @throws {Error} - error if database query fails
- */
 
 const fetchHighestRatedMedia = async (): Promise<MediaItem | undefined> => {
   try {
@@ -299,8 +254,11 @@ const fetchHighestRatedMedia = async (): Promise<MediaItem | undefined> => {
     if (rows.length === 0) {
       return undefined;
     }
-    rows[0].filename =
-      process.env.MEDIA_SERVER + '/uploads/' + rows[0].filename;
+    // add server url to filename because it can't be added in the SQL view
+    rows[0].filename = process.env.UPLOAD_URL + '/uploads/' + rows[0].filename;
+    // add thumbnail to object for the same reason
+    rows[0].thumbnail =
+      process.env.UPLOAD_URL + '/uploads/' + rows[0].filename + '-thumb.png';
     return rows[0];
   } catch (e) {
     console.error('getHighestRatedMedia error', (e as Error).message);
@@ -310,7 +268,6 @@ const fetchHighestRatedMedia = async (): Promise<MediaItem | undefined> => {
 
 export {
   fetchAllMedia,
-  fetchAllMediaByAppId,
   fetchMediaById,
   postMedia,
   deleteMedia,
