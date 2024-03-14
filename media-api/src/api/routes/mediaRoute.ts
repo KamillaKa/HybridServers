@@ -22,9 +22,9 @@ router
     body('title').notEmpty().isString().escape(),
     body('description').notEmpty().isString().escape(),
     body('filename').notEmpty().isString().escape(),
-    body('media_type').notEmpty().isString().escape(),
     body('filesize').notEmpty().isNumeric().escape(),
     body('rating').notEmpty().isNumeric().isInt({min: 1, max: 5}).escape(),
+    body('place_id').notEmpty().isNumeric().escape(),
     validationErrors,
     mediaPost
   );

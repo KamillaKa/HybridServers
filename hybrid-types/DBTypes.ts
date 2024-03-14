@@ -21,9 +21,10 @@ type MediaItem = {
   // user_id: string; // GraphQL
   place_id: number;
   filename: string;
+  media_type: string;
   thumbnail: string;
   filesize: number;
-  media_type: string;
+  rating: number;
   title: string;
   description: string | null;
   created_at: Date | string;
@@ -92,7 +93,6 @@ type MostLikedMedia = Pick<
   | 'media_id'
   | 'filename'
   | 'filesize'
-  | 'media_type'
   | 'title'
   | 'description'
   | 'created_at'
