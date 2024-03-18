@@ -72,8 +72,8 @@ const makeThumbnail = async (
 
     const src =
       process.env.NODE_ENV === 'development'
-        ? path.join(__dirname, '..', 'uploads/', req.file.filename)
-        : req.file.path;
+        ? path.join(__dirname, '../', 'uploads/', req.file.filename)
+        : path.join(__dirname, '../../../', 'uploads/', req.file.filename);
 
     console.log('polku', src);
 
